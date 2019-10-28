@@ -1,7 +1,7 @@
 package tedu.bao.day17;
 
-import cn.bao.annotation.*;
-import cn.bao.controller.UserController;
+import tedu.bao.day17.annotation.*;
+import tedu.bao.day17.controller.UserController;
 
 import java.io.File;
 import java.lang.reflect.Field;

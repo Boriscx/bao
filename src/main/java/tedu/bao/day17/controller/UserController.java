@@ -1,8 +1,9 @@
 package tedu.bao.day17.controller;
 
-import cn.bao.annotation.Autowride;
-import cn.bao.annotation.Controller;
-import cn.bao.service.UserService;
+
+import tedu.bao.day17.annotation.Autowride;
+import tedu.bao.day17.annotation.Controller;
+import tedu.bao.day17.service.UserService;
 
 @Controller
 public class UserController {

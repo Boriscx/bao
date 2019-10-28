@@ -1,7 +1,8 @@
 package tedu.bao.day17.pojo;
 
-import cn.bao.annotation.Entity;
-import cn.bao.annotation.Value;
+
+import tedu.bao.day17.annotation.Entity;
+import tedu.bao.day17.annotation.Value;
 
 @Entity
 public class User {

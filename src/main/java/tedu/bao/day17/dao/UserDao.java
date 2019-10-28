@@ -1,8 +1,9 @@
 package tedu.bao.day17.dao;
 
-import cn.bao.annotation.Autowride;
-import cn.bao.annotation.Component;
-import cn.bao.pojo.User;
+
+import tedu.bao.day17.annotation.Autowride;
+import tedu.bao.day17.annotation.Component;
+import tedu.bao.day17.pojo.User;
 
 @Component
 public class UserDao {

@@ -1,8 +1,8 @@
 package tedu.bao.day17.service;
 
-import cn.bao.annotation.Autowride;
-import cn.bao.annotation.Service;
-import cn.bao.dao.UserDao;
+import tedu.bao.day17.annotation.Autowride;
+import tedu.bao.day17.annotation.Service;
+import tedu.bao.day17.dao.UserDao;
 
 @Service
 public class UserService {
