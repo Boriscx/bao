@@ -24,7 +24,7 @@ public class SpringContext {
 
     }
 
-    ///uiutytiuyi
+    // 测试eclipse修改提交
     private void autowride() throws Exception{
         Collection<Object> collection = map.values();
         for (Object obj : collection){
