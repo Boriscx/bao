@@ -5,6 +5,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.junit.Test;
 
 import java.io.*;
 import java.util.LinkedList;
@@ -58,16 +59,19 @@ public class PaCong {
 //        String host = "http://www.3hebao.co/7_7054/3042526.html";
         String text = "";
         try {
-            text = Jsoup.connect(host).get().getElementById("content").text();
+            Document document = Jsoup.connect(host).get();
+            Elements title = document.select("title");
+            System.out.println(title.text());
+            text = document.getElementById("content").text();
             //System.out.println(text);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return text;
     }
-
+    @Test
     public void getList() {
-        String host = "http://www.3hebao.co/1_1243/";
+        String host = "http://www.3hebao.co/1_1248/";
         LinkedList<String> linkedList = new LinkedList<>();
         try {
             Elements divs = Jsoup.connect(host).get().select("div");
@@ -82,6 +86,7 @@ public class PaCong {
                         String l = "http://www.3hebao.co" + e1.attr("href") + "<title>" + e1.text();
                         if (!linkedList.contains(l))
                             linkedList.add(l);
+                        System.out.println(l);
                     }
                     // System.out.println();
                 }
@@ -90,14 +95,14 @@ public class PaCong {
         } catch (Exception e) {
             flag = false;
         }
-        for (String s : linkedList) {
-            int index = s.lastIndexOf("<title>");
-            String title = s.substring(index + 7);
-            s = s.substring(0, index);
-            System.out.println(title);
-            System.out.println(s);
-            handleFile(title, s);
-        }
+//        for (String s : linkedList) {
+//            int index = s.lastIndexOf("<title>");
+//            String title = s.substring(index + 7);
+//            s = s.substring(0, index);
+//            System.out.println(title);
+//            System.out.println(s);
+//            //handleFile(title, s);
+//        }
     }
 
     private void handleFile(String title, String url) {
@@ -132,8 +137,10 @@ public class PaCong {
     }
 
 
+    @Test
     public void test() {
-        String host = "http://www.3hebao.co/27_27118/7653467.html";
+        String host = "http://www.3hebao.co/27_27118/7653470.html";
+        host = "http://www.3hebao.co/1_1248/843456.html";
         System.out.println(getContext(host));
     }
 }
