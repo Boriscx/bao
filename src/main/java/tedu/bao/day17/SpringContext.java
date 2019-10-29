@@ -24,6 +24,7 @@ public class SpringContext {
 
     }
 
+    ///uiutytiuyi
     private void autowride() throws Exception{
         Collection<Object> collection = map.values();
         for (Object obj : collection){
