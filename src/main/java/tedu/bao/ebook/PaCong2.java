@@ -144,10 +144,12 @@ public class PaCong2 {
         }
     }
 
+    private String userAgent= "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36";
     private String getContent(String link) {
+
         String content = "";
         try {
-            Document document = Jsoup.connect(link).get();
+            Document document = Jsoup.connect(link).userAgent(userAgent).get();
             Element element = document.getElementById("content");
             content = element.text().replaceAll("['#]+", "");
         } catch (Exception e) {
@@ -169,7 +171,7 @@ public class PaCong2 {
                 e.printStackTrace();
             }
         else {
-            System.out.println(book.getTitle() + " 已经存在!");
+            //System.out.println(book.getTitle() + " 已经存在!");
         }
     }
 
@@ -218,6 +220,7 @@ public class PaCong2 {
         }
         if (products.size() > 0) {
             for (Product product : products) {
+                System.out.println(product.getLink()+"<title>"+product.getTitle());
                 try {
                     getTitleList(product.getId(), product.getLink());
                 } catch (Exception e) {
@@ -231,7 +234,12 @@ public class PaCong2 {
     public void test() throws Exception {
         String url = "http://www.3hebao.co/18_18901/";
         Document document = Jsoup.connect(url).get();
-        System.out.println(document);
+        //System.out.println(document);
+
+        Elements select = document.select("div.box_con div dd");
+
+        System.out.println(select.size());
+
     }
 
     public static void main(String[] args) throws Exception {
