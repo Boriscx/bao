@@ -71,10 +71,13 @@ public class PaCong {
     }
     @Test
     public void getList() {
-        String host = "http://www.3hebao.co/1_1248/";
+        String host = "http://www.3hebao.co/1_1257/";
         LinkedList<String> linkedList = new LinkedList<>();
         try {
-            Elements divs = Jsoup.connect(host).get().select("div");
+            Document document = Jsoup.connect(host).get();
+            Element div_title = document.selectFirst("div title");
+            System.out.println(div_title);
+            Elements divs = document.select("div");
             for (Element element : divs) {
                 String link = element.attr("id");
                 if ("list".equals(link)) {
@@ -136,11 +139,20 @@ public class PaCong {
         }
     }
 
-
     @Test
     public void test() {
         String host = "http://www.3hebao.co/27_27118/7653470.html";
-        host = "http://www.3hebao.co/1_1248/843456.html";
-        System.out.println(getContext(host));
+        host = "http://www.3hebao.co/1_1257/844814.html";
+        String context = getContext(host);
+        StringBuilder sb = new StringBuilder(context);
+        int max = sb.length();
+        int min = 50;
+        for (int i =0 ;i<max;){
+            min = Math.min(min,max-i);
+            String substring = sb.substring(i, i+min);
+            System.out.println(substring);
+            i +=min;
+        }
+
     }
 }
