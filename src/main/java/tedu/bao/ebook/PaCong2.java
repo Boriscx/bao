@@ -8,10 +8,12 @@ import org.junit.Test;
 import tedu.bao.db.DB;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 public class PaCong2 {
+
 
     private ArrayList<String> getFLList() throws Exception {
         ArrayList<String> list = new ArrayList<>();
@@ -97,150 +99,175 @@ public class PaCong2 {
         return flag;
     }
 
+    //-----------------------------------get book start--------------------------------------------------------
 
-    private void getTitleList(int linkId, String url1) throws Exception {
+    private ArrayList<Book> getBookList(Document document, Product p){
 
-        String url = "http://www.3hebao.co/9_9443/";
-        Document document = Jsoup.connect(url).get();
         String author = document.getElementById("info").selectFirst("p").text();
         author = author.substring(author.indexOf("：") + 1);//作者
+
         ArrayList<Book> books = new ArrayList<>();
+
         Elements select = document.select("div.box_con div dd");
         for (Element e : select) {
             String href = "http://www.3hebao.co" + e.selectFirst("a").attr("href");
             String title = e.text();
             String skuId = href.substring(href.lastIndexOf('/') + 1, href.lastIndexOf(".html"));
-            Book book = new Book(linkId, author, skuId, title, "", href);
+            Book book = new Book(p.getId(), author, skuId, title, "", href);
             if (!books.contains(book)) {
                 books.add(book);
-            } else
-                System.out.println(href + "已经存在");
+            } else {
+                //System.out.println(href + "已经存在");
+            }
         }
-        saveProduct(books, linkId);
+
+        return books;
     }
 
-    private void saveProduct(ArrayList<Book> books, int linkId) {
-        long row = getTitleCount(linkId);
-        if (row > 0) {
-            if (row == books.size())
-                return;
-            for (Book b : books) {
-                getContent(b);
-            }
-        } else {
-            StringBuilder sb = new StringBuilder();
-            sb.append("insert into book(linkId,author,skuId,title,content,link) values");
-            for (int i = 0; i < books.size(); i++) {
-                Book b = books.get(i);
-                b.setContent(getContent(b.getLink()));
-                sb.append(b.getSingleValue());
-                sb.append(",");
-                if (i % 20 == 0 || i == books.size() - 1) {
-                    sb.delete(sb.lastIndexOf(","), sb.length());
-                    db.execute(sb.toString());
-                    sb = new StringBuilder("insert into book(linkId,author,skuId,title,content,link) values");
-                }
+    private void getTitleList(Product p) throws Exception {
+
+        Document document = Jsoup.connect(p.getLink()).get();
+        ArrayList<Book> books = getBookList(document,p);
+        System.out.println("getTitleList books:" + books.size());
+        if (p.getCount() == 0)
+            updateProduct(p.getId(), books.size());
+        if (books.size() < BOOK_SIZE) {
+            if (p.getHaveCount() > 0) {
+                singleSaveBook(books,p.getId());
+            } else {
+                moreSaveBook(books);
             }
         }
     }
 
-    private String userAgent= "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36";
     private String getContent(String link) {
-
         String content = "";
         try {
-            Document document = Jsoup.connect(link).userAgent(userAgent).get();
+            Document document = Jsoup.connect(link).get();
+            printTime();
             Element element = document.getElementById("content");
             content = element.text().replaceAll("['#]+", "");
+
         } catch (Exception e) {
+            System.out.println("getContent link:" + link);
             e.printStackTrace();
         }
         return content;
     }
-
-    private void getContent(Book book) {
-        if (!isBookHave(book.getSkuId()))
-            try {
-                Document document = Jsoup.connect(book.getLink()).get();
-                Element element = document.getElementById("content");
-                // [.'#]
-                String content = element.text().replaceAll("[.'#]", "");
-                book.setContent(content);
-                db.execute(book.getInsertSQL());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        else {
-            //System.out.println(book.getTitle() + " 已经存在!");
-        }
-    }
-
-    public long getTitleCount(int linkId) {
-        String skuId = "";
-        String sql = "select count(*) from book where linkId = '" + linkId + "'";
-        long row = 0;
-        ResultSet resultSet = db.getResultSet(sql);
-        try {
-            if (resultSet.next()) {
-                row = (long) resultSet.getObject(1);
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return row;
-    }
-
-    private boolean isBookHave(String skuId) {
-        String sql = "select * from book where skuId='" + skuId + "'";
+    private ArrayList<String> getAlreadyHave(int link) {
+        ArrayList<String> list = new ArrayList<>();
+        String sql = "select * from book where linkId=" + link;
         try {
             ResultSet resultSet = db.getResultSet(sql);
-            boolean flag = resultSet != null && resultSet.next();
-            assert resultSet != null;
-            return flag;
+            while (resultSet.next()) {
+                String skuId = resultSet.getString("skuId");
+                if (!list.contains(skuId))
+                    list.add(skuId);
+            }
         } catch (Exception e) {
-            return false;
+            System.out.println("getAlreadyHave link:" + link);
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    private void singleSaveBook(ArrayList<Book> books,int linkId){
+        ArrayList<String> skuIdList = getAlreadyHave(linkId);
+        for (Book b : books) {
+            if (!skuIdList.contains(b.getSkuId())) {
+                b.setContent(getContent(b.getLink()));
+                if (!"".equals(b.getContent()))
+                    db.execute(b.getInsertSQL());
+                else {
+                    System.out.println("saveBook: content is null , not save ");
+                }
+            } else {
+                System.out.println(b.getTitle() + " 已经存在!");
+            }
         }
     }
+
+    private void moreSaveBook(ArrayList<Book> books){
+        StringBuilder sb = new StringBuilder();
+        sb.append("insert into book(linkId,author,skuId,title,content,link) values");
+        int sbLength = sb.length();
+        for (int i = 0; i < books.size(); i++) {
+            Book b = books.get(i);
+            b.setContent(getContent(b.getLink()));
+            if (!"".equals(b.getContent())) {
+                sb.append(b.getSingleValue());
+                sb.append(",");
+            }
+            if ((i % 20 == 0 || i == books.size() - 1) && sb.length() > sbLength) {
+                sb.delete(sb.lastIndexOf(","), sb.length());
+                db.execute(sb.toString());
+                sb = new StringBuilder("insert into book(linkId,author,skuId,title,content,link) values");
+            }
+        }
+    }
+
+
+
+
 
     private void getAllItemLinkFromDB() {
         ArrayList<Product> products = new ArrayList<>();
-        ResultSet re = db.getResultSet("select * from product LIMIT 0,300");
+        String sql = "SELECT ID,TITLE,LINK,IFNULL(COUNT,0) COUNT,IFNULL(HAVECOUNT,0) HAVECOUNT FROM PRODUCT P LEFT JOIN " +
+                "(SELECT LINKID,IFNULL(COUNT(*),0) HAVECOUNT FROM BOOK GROUP BY LINKID ) B " +
+                "ON P.ID=B.LINKID " +
+                "WHERE ( COUNT > B.HAVECOUNT) OR (COUNT = 0) " +
+                "ORDER BY P.ID DESC " +
+                "LIMIT " + PRO_COUNT_START + "," + PRO_COUNT_END;
+        ResultSet re = db.getResultSet(sql);
         try {
             while (re.next()) {
-                int linkId = re.getInt("id");
-                String title = re.getString("title");
-                String url = re.getString("link");
-                products.add(new Product(linkId, title, url));
-                //getTitleList(linkId, url);
+                int linkId = re.getInt("ID");
+                String title = re.getString("TITLE");
+                String url = re.getString("LINK");
+                int count = re.getInt("COUNT");
+                int haveCount = re.getInt("HAVECOUNT");
+                Product p = new Product(linkId, title, url);
+                p.setCount(count);
+                p.setHaveCount(haveCount);
+                products.add(p);
             }
             re.close();
         } catch (Exception e) {
+            System.out.println("getAllItemLinkFromDB first");
             e.printStackTrace();
         }
         if (products.size() > 0) {
             for (Product product : products) {
-                System.out.println(product.getLink()+"<title>"+product.getTitle());
+                System.out.println("--------------------------------------------");
+                System.out.println(product.getLink() + "<title>" + product.getTitle());
                 try {
-                    getTitleList(product.getId(), product.getLink());
+                    if (product.getCount() < BOOK_SIZE)
+                        getTitleList(product);
                 } catch (Exception e) {
+                    System.out.println("getAllItemLinkFromDB product:" + product.getLink());
                     e.printStackTrace();
                 }
             }
         }
     }
 
-    @Test
-    public void test() throws Exception {
-        String url = "http://www.3hebao.co/18_18901/";
-        Document document = Jsoup.connect(url).get();
-        //System.out.println(document);
-
-        Elements select = document.select("div.box_con div dd");
-
-        System.out.println(select.size());
-
+    private void printTime() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
+        System.out.println(sdf.format(new Date()));
     }
+
+    private void updateProduct(int id, int count) {
+        if (count > 0) {
+            String sql = "update product set count=" + count + " where id= " + id;
+            db.execute(sql);
+        }
+    }
+
+    public static final int PRO_COUNT_START = 0;
+
+    public static final int PRO_COUNT_END = 300;
+
+    private static final int BOOK_SIZE = 200;
 
     public static void main(String[] args) throws Exception {
         PaCong2 pc = new PaCong2();

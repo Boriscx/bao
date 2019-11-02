@@ -1,5 +1,7 @@
 package tedu.bao.ebook;
 
+import java.util.Objects;
+
 public class Book {
     private int id;//id
     private int linkId;// 链接id
@@ -102,5 +104,24 @@ public class Book {
                 content + "','" +
                 link +
                 "')";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Book book = (Book) o;
+        return id == book.id &&
+                linkId == book.linkId &&
+                Objects.equals(author, book.author) &&
+                Objects.equals(skuId, book.skuId) &&
+                Objects.equals(title, book.title) &&
+                Objects.equals(content, book.content) &&
+                Objects.equals(link, book.link);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, linkId, author, skuId, title, content, link);
     }
 }
