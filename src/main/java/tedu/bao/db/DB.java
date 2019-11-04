@@ -62,17 +62,14 @@ public class DB {
 
     }
 
-    public boolean execute(String sql) {
-        try {
+    public boolean execute(String sql) throws Exception{
+
             if (statement == null) {
                 getStatement();
                 return execute(sql);
             } else {
                 return statement.executeUpdate(sql) > 0;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+
     }
 }

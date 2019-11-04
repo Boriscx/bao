@@ -101,7 +101,7 @@ public class PaCong2 {
 
     //-----------------------------------get book start--------------------------------------------------------
 
-    private ArrayList<Book> getBookList(Document document, Product p){
+    private ArrayList<Book> getBookList(Document document, Product p) {
 
         String author = document.getElementById("info").selectFirst("p").text();
         author = author.substring(author.indexOf("：") + 1);//作者
@@ -127,13 +127,13 @@ public class PaCong2 {
     private void getTitleList(Product p) throws Exception {
 
         Document document = Jsoup.connect(p.getLink()).get();
-        ArrayList<Book> books = getBookList(document,p);
+        ArrayList<Book> books = getBookList(document, p);
         System.out.println("getTitleList books:" + books.size());
         if (p.getCount() == 0)
             updateProduct(p.getId(), books.size());
         if (books.size() < BOOK_SIZE) {
             if (p.getHaveCount() > 0) {
-                singleSaveBook(books,p.getId());
+                singleSaveBook(books, p.getId());
             } else {
                 moreSaveBook(books);
             }
@@ -146,14 +146,18 @@ public class PaCong2 {
             Document document = Jsoup.connect(link).get();
             printTime();
             Element element = document.getElementById("content");
-            content = element.text().replaceAll("['#]+", "");
-
+            // ['#\]+
+            String regex = "[/\\\\_'#)(]";
+            regex = "[^\\w\\u4e00-\\u9fa5,.?!\"“”:：]+";
+            content = element.text().replaceAll("<[\\s\\S]*?>", "").replaceAll(regex, "");
         } catch (Exception e) {
-            System.out.println("getContent link:" + link);
-            e.printStackTrace();
+            System.out.println("getContent error link:" + link);
+            System.out.println(e.getMessage());
+            //e.printStackTrace();
         }
         return content;
     }
+
     private ArrayList<String> getAlreadyHave(int link) {
         ArrayList<String> list = new ArrayList<>();
         String sql = "select * from book where linkId=" + link;
@@ -171,23 +175,29 @@ public class PaCong2 {
         return list;
     }
 
-    private void singleSaveBook(ArrayList<Book> books,int linkId){
+    private void singleSaveBook(ArrayList<Book> books, int linkId) {
         ArrayList<String> skuIdList = getAlreadyHave(linkId);
         for (Book b : books) {
             if (!skuIdList.contains(b.getSkuId())) {
                 b.setContent(getContent(b.getLink()));
                 if (!"".equals(b.getContent()))
-                    db.execute(b.getInsertSQL());
+                    try {
+                        db.execute(b.getInsertSQL());
+                    } catch (Exception e) {
+                        System.out.println("context is too long :" + b.getContent().length() + " link:" + b.getLink());
+                        System.out.println(e.getMessage());
+                        System.out.println(b.getInsertSQL());
+                    }
                 else {
                     System.out.println("saveBook: content is null , not save ");
                 }
             } else {
-                System.out.println(b.getTitle() + " 已经存在!");
+                //System.out.println(b.getTitle() + " 已经存在!");
             }
         }
     }
 
-    private void moreSaveBook(ArrayList<Book> books){
+    private void moreSaveBook(ArrayList<Book> books) {
         StringBuilder sb = new StringBuilder();
         sb.append("insert into book(linkId,author,skuId,title,content,link) values");
         int sbLength = sb.length();
@@ -198,26 +208,27 @@ public class PaCong2 {
                 sb.append(b.getSingleValue());
                 sb.append(",");
             }
-            if ((i % 20 == 0 || i == books.size() - 1) && sb.length() > sbLength) {
+            if ((i % 2 == 0 || i == books.size() - 1) && sb.length() > sbLength) {
                 sb.delete(sb.lastIndexOf(","), sb.length());
-                db.execute(sb.toString());
+                try {
+                    db.execute(sb.toString());
+                } catch (Exception e) {
+                    System.out.println(sb.toString());
+                }
                 sb = new StringBuilder("insert into book(linkId,author,skuId,title,content,link) values");
+
             }
         }
     }
 
-
-
-
-
     private void getAllItemLinkFromDB() {
         ArrayList<Product> products = new ArrayList<>();
-        String sql = "SELECT ID,TITLE,LINK,IFNULL(COUNT,0) COUNT,IFNULL(HAVECOUNT,0) HAVECOUNT FROM PRODUCT P LEFT JOIN " +
-                "(SELECT LINKID,IFNULL(COUNT(*),0) HAVECOUNT FROM BOOK GROUP BY LINKID ) B " +
-                "ON P.ID=B.LINKID " +
-                "WHERE ( COUNT > B.HAVECOUNT) OR (COUNT = 0) " +
-                "ORDER BY P.ID DESC " +
+        String sql = "SELECT P.*, COUNT(B.LINKID) HAVECOUNT " +
+                "FROM PRODUCT P LEFT JOIN BOOK B ON P.ID = B.LINKID " +
+                "GROUP BY P.ID HAVING ( P.COUNT > COUNT(B.LINKID) OR HAVECOUNT = 0) AND P.COUNT < "+BOOK_SIZE+" " +
+                "ORDER BY COUNT(B.LINKID) DESC " +
                 "LIMIT " + PRO_COUNT_START + "," + PRO_COUNT_END;
+        System.out.println(sql);
         ResultSet re = db.getResultSet(sql);
         try {
             while (re.next()) {
@@ -259,13 +270,17 @@ public class PaCong2 {
     private void updateProduct(int id, int count) {
         if (count > 0) {
             String sql = "update product set count=" + count + " where id= " + id;
-            db.execute(sql);
+            try {
+                db.execute(sql);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
     public static final int PRO_COUNT_START = 0;
 
-    public static final int PRO_COUNT_END = 300;
+    public static final int PRO_COUNT_END = 500;
 
     private static final int BOOK_SIZE = 200;
 
@@ -274,3 +289,5 @@ public class PaCong2 {
         pc.getAllItemLinkFromDB();
     }
 }
+
+
